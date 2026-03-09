@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Jogo da Velha Quiz</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#0E1D2E;
+color:white;
+text-align:center;
+margin:0;
+}
+
+h1{color:#FF6400}
+
+.screen{display:none;padding:20px}
+.active{display:block}
+
+button{
+background:#FF6400;
+border:none;
+padding:12px 18px;
+font-size:18px;
+border-radius:8px;
+cursor:pointer;
+margin:10px;
+color:white;
+}
+
+input{padding:10px;font-size:20px}
+
+.games{
+display:flex;
+justify-content:center;
+gap:60px;
+flex-wrap:wrap;
+}
+
+.board{
+display:grid;
+grid-template-columns:repeat(3,120px);
+gap:10px;
+}
+
+.cell{
+width:120px;
+height:120px;
+background:white;
+color:#0E1D2E;
+font-size:50px;
+display:flex;
+align-items:center;
+justify-content:center;
+border-radius:10px;
+cursor:pointer;
+}
+
+#questionBox{
+font-size:32px;
+margin-bottom:20px;
+}
+
+.gapInput{
+font-size:28px;
+padding:6px;
+width:180px;
+text-align:center;
+}
+
+.correct{
+color:#00ff88;
+font-weight:bold;
+}
+
+.wrong{
+color:#ff4d4d;
+font-weight:bold;
+}
+
+.timer{
+height:20px;
+background:#444;
+width:300px;
+margin:auto;
+border-radius:10px;
+overflow:hidden;
+}
+
+.bar{
+height:100%;
+background:#FF6400;
+width:100%;
+transition:width 1s linear;
+}
+
+.answerBox{
+font-size:26px;
+margin-top:20px;
+}
+
+#winner{
+font-size:50px;
+color:#FF6400;
+animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+0%{transform:scale(1)}
+50%{transform:scale(1.2)}
+100%{transform:scale(1)}
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="setup" class="screen active">
+
+<h1>Jogo da Velha Quiz</h1>
+
+<p>Enviar arquivo CSV</p>
+<input type="file" id="csv">
+
+<h3>Jogo 1</h3>
+<input id="t1" placeholder="Time A">
+<input id="t2" placeholder="Time B">
+
+<h3>Jogo 2</h3>
+<input id="t3" placeholder="Time C">
+<input id="t4" placeholder="Time D">
+
+<br><br>
+
+<button onclick="startGame()">Começar</button>
+
+</div>
+
+
+<div id="game" class="screen">
+
+<h1 id="turn"></h1>
+
+<p>Escolha uma casa</p>
+
+<div class="games">
+
+<div>
+<h2 id="g1"></h2>
+<div id="board0" class="board"></div>
+</div>
+
+<div>
+<h2 id="g2"></h2>
+<div id="board1" class="board"></div>
+</div>
+
+</div>
+
+</div>
+
+
+<div id="questionScreen" class="screen">
+
+<div id="questionBox"></div>
+
+<div class="timer">
+<div class="bar" id="bar"></div>
+</div>
+
+<br>
+
+<button onclick="checkAnswer()">Responder</button>
+
+<h2 id="feedback"></h2>
+
+<button id="continueBtn" style="display:none" onclick="continueGame()">Continuar</button>
+
+</div>
+
+<script>
+
+let questions=[]
+let used=[]
+
+let teams=[]
+let turn=0
+
+let boards=[
+["","","","","","","","",""],
+["","","","","","","","",""]
+]
+
+let selectedCell
+let selectedBoard
+let selectedIndex
+let currentQuestion
+
+let timer
+let time=45
+
+function parseCSV(text){
+
+let rows=text.split("\n")
+
+rows.slice(1).forEach(r=>{
+
+let parts=r.split(";")
+
+if(parts.length>=2){
+
+questions.push({
+q:parts[0],
+a:parts[1].trim().toLowerCase()
+})
+
+}
+
+})
+
+}
+
+function startGame(){
+
+let file=document.getElementById("csv").files[0]
+
+let reader=new FileReader()
+
+reader.onload=function(e){
+
+parseCSV(e.target.result)
+
+teams=[
+t1.value,
+t2.value,
+t3.value,
+t4.value
+]
+
+g1.innerText=teams[0]+" vs "+teams[1]
+g2.innerText=teams[2]+" vs "+teams[3]
+
+createBoard(0)
+createBoard(1)
+
+updateTurn()
+
+switchScreen("game")
+
+}
+
+reader.readAsText(file)
+
+}
+
+function createBoard(i){
+
+let board=document.getElementById("board"+i)
+
+for(let c=0;c<9;c++){
+
+let cell=document.createElement("div")
+cell.className="cell"
+
+cell.onclick=()=>selectCell(i,c,cell)
+
+board.appendChild(cell)
+
+}
+
+}
+
+function updateTurn(){
+
+let team=teams[turn%4]
+
+let game=turn%4<2?1:2
+
+turnText=team+" (Jogo "+game+")"
+
+document.getElementById("turn").innerText=turnText
+
+}
+
+function selectCell(board,index,cell){
+
+if(board!=(turn%4<2?0:1)) return
+
+if(cell.innerText!="") return
+
+selectedCell=cell
+selectedBoard=board
+selectedIndex=index
+
+showQuestion()
+
+}
+
+function showQuestion(){
+
+let available=questions.filter(q=>!used.includes(q))
+
+if(available.length==0) used=[]
+
+currentQuestion=available[Math.floor(Math.random()*available.length)]
+
+used.push(currentQuestion)
+
+let parts=currentQuestion.q.split("___")
+
+questionBox.innerHTML=
+parts[0]+"<input id='gapInput' class='gapInput'>"+(parts[1]||"")
+
+feedback.innerHTML=""
+continueBtn.style.display="none"
+
+switchScreen("questionScreen")
+
+document.getElementById("gapInput").focus()
+
+startTimer()
+
+}
+
+function startTimer(){
+
+time=45
+bar.style.width="100%"
+
+timer=setInterval(()=>{
+
+time--
+
+bar.style.width=(time/45*100)+"%"
+
+if(time<=0) checkAnswer()
+
+},1000)
+
+}
+
+function checkAnswer(){
+
+clearInterval(timer)
+
+let input=document.getElementById("gapInput")
+let student=input.value.trim()
+let correct=currentQuestion.a
+
+let parts=currentQuestion.q.split("___")
+
+if(student.toLowerCase()==correct){
+
+questionBox.innerHTML=
+parts[0]+"<span class='correct'>"+student+"</span>"+(parts[1]||"")
+
+feedback.innerHTML="Resposta correta."
+
+correctMove=true
+
+}else{
+
+questionBox.innerHTML=
+parts[0]+"<span class='wrong'>"+student+"</span>"+(parts[1]||"")
+
+feedback.innerHTML=
+"<div class='answerBox'>Gabarito: <span class='correct'>"+correct+"</span></div>"
+
+correctMove=false
+
+}
+
+continueBtn.style.display="inline-block"
+
+}
+
+function continueGame(){
+
+if(correctMove){
+
+let mark=turn%2==0?"X":"O"
+
+selectedCell.innerText=mark
+
+boards[selectedBoard][selectedIndex]=mark
+
+checkWin(selectedBoard)
+
+}
+
+turn++
+
+switchScreen("game")
+
+updateTurn()
+
+}
+
+function checkWin(b){
+
+let board=boards[b]
+
+let wins=[
+[0,1,2],[3,4,5],[6,7,8],
+[0,3,6],[1,4,7],[2,5,8],
+[0,4,8],[2,4,6]
+]
+
+for(let w of wins){
+
+if(board[w[0]] &&
+board[w[0]]==board[w[1]] &&
+board[w[1]]==board[w[2]]){
+
+showWinner(b,board[w[0]])
+
+}
+
+}
+
+}
+
+function showWinner(b,mark){
+
+let team
+
+if(b==0)
+team=mark=="X"?teams[0]:teams[1]
+else
+team=mark=="X"?teams[2]:teams[3]
+
+document.body.innerHTML="<div id='winner'>"+team+" VENCEU!</div>"
+
+}
+
+document.addEventListener("keypress",function(e){
+
+if(e.key==="Enter") checkAnswer()
+
+})
+
+function switchScreen(id){
+
+document.querySelectorAll(".screen")
+.forEach(s=>s.classList.remove("active"))
+
+document.getElementById(id).classList.add("active")
+
+}
+
+</script>
+
+</body>
+</html>
