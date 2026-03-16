@@ -109,6 +109,18 @@ color:#FF6400;
 animation:pulse 1s infinite;
 }
 
+#finalWinner{
+font-size:44px;
+color:#FF6400;
+animation:pulse 1s infinite;
+line-height:1.2;
+}
+
+#finalDetails{
+font-size:28px;
+margin-top:20px;
+}
+
 @keyframes pulse{
 0%{transform:scale(1)}
 50%{transform:scale(1.2)}
@@ -169,6 +181,8 @@ animation:pulse 1s infinite;
 
 <div id="questionBox"></div>
 
+<div id="inputArea"></div>
+
 <div class="timer">
 <div class="bar" id="bar"></div>
 </div>
@@ -180,6 +194,13 @@ animation:pulse 1s infinite;
 <h2 id="feedback"></h2>
 
 <button id="continueBtn" style="display:none" onclick="continueGame()">Continuar</button>
+
+</div>
+
+<div id="finalScreen" class="screen">
+
+<div id="finalWinner"></div>
+<div id="finalDetails"></div>
 
 </div>
 
@@ -195,11 +216,13 @@ let boards=[
 ["","","","","","","","",""],
 ["","","","","","","","",""]
 ]
+let results=[null,null]
 
 let selectedCell
 let selectedBoard
 let selectedIndex
 let currentQuestion
+let currentHasGap
 
 let timer
 let time=45
@@ -208,21 +231,46 @@ function parseCSV(text){
 
 let rows=text.split("\n")
 
-rows.slice(1).forEach(r=>{
+rows.forEach(r=>{
 
 let parts=r.split(";")
 
 if(parts.length>=2){
 
+let questionText=parts[0].trim()
+let answerText=parts[1].trim()
+
+if(!questionText || !answerText) return
+
+let isHeader=
+questionText.toLowerCase()=="pergunta" &&
+answerText.toLowerCase()=="resposta"
+
+if(isHeader) return
+
+let rawAnswers=answerText
+
 questions.push({
-q:parts[0],
-a:parts[1].trim().toLowerCase()
+q:questionText,
+a:rawAnswers.split(",").map(a=>a.trim().toLowerCase()).filter(a=>a.length>0),
+aDisplay:rawAnswers.split(",").map(a=>a.trim()).filter(a=>a.length>0)
 })
 
 }
 
 })
 
+}
+
+function splitQuestion(q){
+let match=q.match(/_{3,}/)
+
+if(!match) return {hasGap:false,before:q,after:""}
+
+let start=match.index
+let end=start+match[0].length
+
+return {hasGap:true,before:q.slice(0,start),after:q.slice(end)}
 }
 
 function startGame(){
@@ -277,6 +325,12 @@ board.appendChild(cell)
 
 function updateTurn(){
 
+if(results[0] && results[1]) return
+
+if(isGameFinished(getGameIndexForTeam(turn))){
+advanceTurn()
+}
+
 let team=teams[turn%4]
 
 let game=turn%4<2?1:2
@@ -292,6 +346,7 @@ function selectCell(board,index,cell){
 if(board!=(turn%4<2?0:1)) return
 
 if(cell.innerText!="") return
+if(results[board]) return
 
 selectedCell=cell
 selectedBoard=board
@@ -311,10 +366,17 @@ currentQuestion=available[Math.floor(Math.random()*available.length)]
 
 used.push(currentQuestion)
 
-let parts=currentQuestion.q.split("___")
+let parts=splitQuestion(currentQuestion.q)
+currentHasGap=parts.hasGap
 
+if(currentHasGap){
 questionBox.innerHTML=
-parts[0]+"<input id='gapInput' class='gapInput'>"+(parts[1]||"")
+parts.before+"<input id='gapInput' class='gapInput'>"+(parts.after||"")
+inputArea.innerHTML=""
+}else{
+questionBox.innerHTML=parts.before
+inputArea.innerHTML="<input id='gapInput' class='gapInput'>"
+}
 
 feedback.innerHTML=""
 continueBtn.style.display="none"
@@ -350,14 +412,22 @@ clearInterval(timer)
 
 let input=document.getElementById("gapInput")
 let student=input.value.trim()
-let correct=currentQuestion.a
+let correctList=currentQuestion.a
 
-let parts=currentQuestion.q.split("___")
+let parts=splitQuestion(currentQuestion.q)
 
-if(student.toLowerCase()==correct){
+let normalized=student.toLowerCase()
 
+if(correctList.includes(normalized)){
+
+if(currentHasGap){
 questionBox.innerHTML=
-parts[0]+"<span class='correct'>"+student+"</span>"+(parts[1]||"")
+parts.before+"<span class='correct'>"+student+"</span>"+(parts.after||"")
+inputArea.innerHTML=""
+}else{
+questionBox.innerHTML=parts.before
+inputArea.innerHTML="<div class='answerBox'><span class='correct'>"+student+"</span></div>"
+}
 
 feedback.innerHTML="Resposta correta."
 
@@ -365,11 +435,17 @@ correctMove=true
 
 }else{
 
+if(currentHasGap){
 questionBox.innerHTML=
-parts[0]+"<span class='wrong'>"+student+"</span>"+(parts[1]||"")
+parts.before+"<span class='wrong'>"+student+"</span>"+(parts.after||"")
+inputArea.innerHTML=""
+}else{
+questionBox.innerHTML=parts.before
+inputArea.innerHTML="<div class='answerBox'><span class='wrong'>"+student+"</span></div>"
+}
 
 feedback.innerHTML=
-"<div class='answerBox'>Gabarito: <span class='correct'>"+correct+"</span></div>"
+"<div class='answerBox'>Gabarito: <span class='correct'>"+currentQuestion.aDisplay.join(", ")+"</span></div>"
 
 correctMove=false
 
@@ -389,7 +465,17 @@ selectedCell.innerText=mark
 
 boards[selectedBoard][selectedIndex]=mark
 
-checkWin(selectedBoard)
+let result=checkWin(selectedBoard)
+
+if(result){
+results[selectedBoard]=result
+updateGameHeader(selectedBoard)
+
+if(results[0] && results[1]){
+showFinalResults()
+return
+}
+}
 
 }
 
@@ -417,25 +503,94 @@ if(board[w[0]] &&
 board[w[0]]==board[w[1]] &&
 board[w[1]]==board[w[2]]){
 
-showWinner(b,board[w[0]])
+return board[w[0]]
 
 }
 
 }
 
+if(board.every(c=>c!="")) return "draw"
+
+return null
+
+}
+function getGameIndexForTeam(teamIndex){
+return teamIndex<2?0:1
 }
 
-function showWinner(b,mark){
+function isGameFinished(gameIndex){
+return results[gameIndex]!=null
+}
 
-let team
+function advanceTurn(){
+let attempts=0
 
-if(b==0)
-team=mark=="X"?teams[0]:teams[1]
-else
-team=mark=="X"?teams[2]:teams[3]
+do{
+turn=(turn+1)%4
+attempts++
+}while(attempts<5 && isGameFinished(getGameIndexForTeam(turn)))
+}
 
-document.body.innerHTML="<div id='winner'>"+team+" VENCEU!</div>"
+function updateGameHeader(gameIndex){
+let title=gameIndex==0?g1:g2
+let base=gameIndex==0
+?teams[0]+" vs "+teams[1]
+:teams[2]+" vs "+teams[3]
 
+let result=results[gameIndex]
+
+if(!result){
+title.innerText=base
+return
+}
+
+if(result=="draw"){
+title.innerText=base+" - Empate"
+return
+}
+
+let winner=gameIndex==0
+?(result=="X"?teams[0]:teams[1])
+:(result=="X"?teams[2]:teams[3])
+
+title.innerText=base+" - Vencedor: "+winner
+}
+
+function formatResult(gameIndex){
+let result=results[gameIndex]
+
+if(result=="draw") return "Empate"
+
+let winner=gameIndex==0
+?(result=="X"?teams[0]:teams[1])
+:(result=="X"?teams[2]:teams[3])
+
+return winner+" venceu"
+}
+
+function showFinalResults(){
+let winners=[]
+
+if(results[0]=="X") winners.push(teams[0])
+if(results[0]=="O") winners.push(teams[1])
+if(results[1]=="X") winners.push(teams[2])
+if(results[1]=="O") winners.push(teams[3])
+
+let message=""
+
+if(winners.length==2){
+message=winners[0]+" e "+winners[1]+" VENCERAM!"
+}else if(winners.length==1){
+message=winners[0]+" VENCEU!"
+}else{
+message="OS DOIS JOGOS EMPATARAM"
+}
+
+finalWinner.innerText=message
+finalDetails.innerHTML=
+"Jogo 1: "+formatResult(0)+"<br>Jogo 2: "+formatResult(1)
+
+switchScreen("finalScreen")
 }
 
 document.addEventListener("keypress",function(e){
