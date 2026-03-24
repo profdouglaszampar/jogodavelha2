@@ -14,25 +14,45 @@ background:#0E1D2E;
 color:white;
 text-align:center;
 margin:0;
+font-size:20px;
 }
 
-h1{color:#FF6400}
+h1{color:#FF6400;font-size:2.2em}
 
-.screen{display:none;padding:20px}
+.screen{display:none;padding:20px 40px;margin:0 auto}
 .active{display:block}
+
+#questionScreen{
+font-size:200%;
+text-align:center;
+padding:20vh 20px;
+box-sizing:border-box;
+gap:12px;
+line-height:1.1;
+}
+
+#questionScreen.active{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:flex-start;
+height:100vh;
+}
+
+p{margin:12px 0}
 
 button{
 background:#FF6400;
 border:none;
 padding:12px 18px;
-font-size:18px;
+font-size:22px;
 border-radius:8px;
 cursor:pointer;
 margin:10px;
 color:white;
 }
 
-input{padding:10px;font-size:20px}
+input{padding:10px;font-size:24px}
 
 .games{
 display:flex;
@@ -47,12 +67,16 @@ grid-template-columns:repeat(3,120px);
 gap:10px;
 }
 
+#board1 .cell{
+font-size:68px;
+}
+
 .cell{
 width:120px;
 height:120px;
 background:white;
 color:#0E1D2E;
-font-size:50px;
+font-size:60px;
 display:flex;
 align-items:center;
 justify-content:center;
@@ -60,16 +84,38 @@ border-radius:10px;
 cursor:pointer;
 }
 
+.powerTarget{
+outline:3px solid #00ff88;
+box-shadow:0 0 12px rgba(0,255,136,0.6);
+}
+
 #questionBox{
-font-size:32px;
+font-size:38px;
 margin-bottom:20px;
 }
 
+#powerBox{
+font-size:0.7em;
+color:#ffd166;
+margin-bottom:10px;
+letter-spacing:0.5px;
+text-transform:uppercase;
+display:none;
+}
+
 .gapInput{
-font-size:28px;
+font-size:34px;
 padding:6px;
 width:180px;
 text-align:center;
+}
+
+.gapInput.inline{
+width:360px;
+}
+
+.gapInput.block{
+width:540px;
 }
 
 .correct{
@@ -99,26 +145,175 @@ transition:width 1s linear;
 }
 
 .answerBox{
-font-size:26px;
+font-size:31px;
 margin-top:20px;
 }
 
 #winner{
-font-size:50px;
+font-size:60px;
 color:#FF6400;
 animation:pulse 1s infinite;
 }
 
 #finalWinner{
-font-size:44px;
+font-size:72px;
 color:#FF6400;
 animation:pulse 1s infinite;
 line-height:1.2;
+text-shadow:0 0 18px rgba(255,100,0,0.6);
+}
+
+.winnerName{
+color:#FF6400;
+font-weight:bold;
 }
 
 #finalDetails{
-font-size:28px;
+font-size:34px;
 margin-top:20px;
+}
+
+#finalScreen.active{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+height:100vh;
+gap:20px;
+}
+
+#confetti{
+position:fixed;
+inset:0;
+pointer-events:none;
+overflow:hidden;
+}
+
+#confetti span{
+position:absolute;
+width:10px;
+height:14px;
+top:-10%;
+background:var(--c);
+left:var(--x);
+transform:rotate(var(--r));
+animation:confetti-fall var(--d) linear infinite;
+opacity:0.9;
+}
+
+@keyframes confetti-fall{
+0%{transform:translateY(-10vh) rotate(var(--r))}
+100%{transform:translateY(110vh) rotate(calc(var(--r) + 360deg))}
+}
+
+.powerOverlay{
+position:fixed;
+inset:0;
+display:flex;
+align-items:center;
+justify-content:center;
+background:radial-gradient(circle at center, rgba(14,29,46,0.98) 0%, rgba(8,14,24,0.95) 70%);
+opacity:0;
+pointer-events:none;
+transition:opacity .2s ease;
+z-index:999;
+}
+
+.powerOverlay.show{
+opacity:1;
+pointer-events:auto;
+}
+
+#powerOverlayText{
+font-size:64px;
+font-weight:bold;
+color:#ff4d4d;
+text-shadow:0 0 20px rgba(255,77,77,0.6);
+animation:powerPulse 0.8s infinite, powerShake 0.2s infinite;
+text-align:center;
+padding:0 40px;
+}
+
+.powerOverlay.bomb #powerOverlayText{
+color:#ffd166;
+text-shadow:0 0 20px rgba(255,209,102,0.6);
+}
+
+@keyframes powerPulse{
+0%{transform:scale(1)}
+50%{transform:scale(1.1)}
+100%{transform:scale(1)}
+}
+
+@keyframes powerShake{
+0%{transform:translateY(0)}
+25%{transform:translateY(-2px)}
+50%{transform:translateY(2px)}
+75%{transform:translateY(-1px)}
+100%{transform:translateY(0)}
+}
+
+#markAnimLayer{
+position:fixed;
+inset:0;
+pointer-events:none;
+z-index:998;
+}
+
+.markGhost{
+position:fixed;
+transform:translate(-50%,-50%);
+transition:left .9s ease, top .9s ease;
+font-weight:bold;
+color:#0E1D2E;
+}
+
+.ghostHidden{
+opacity:0;
+}
+
+.nukeFade{
+animation:nukeFade .8s forwards;
+}
+
+@keyframes nukeFade{
+0%{opacity:1;transform:scale(1)}
+100%{opacity:0;transform:scale(0.2) rotate(20deg)}
+}
+
+.markers{
+margin-top:8px;
+font-size:24px;
+}
+
+.markers span{
+display:inline-block;
+margin:0 8px;
+}
+
+.markSymbol{
+display:inline-block;
+font-weight:bold;
+font-size:28px;
+color:#FF6400;
+margin-right:6px;
+}
+
+.markSymbol.alt{
+font-size:34px;
+}
+
+.turnPulse{
+border:2px solid #FF6400;
+border-radius:999px;
+padding:4px 10px;
+animation:turnPulse 1s infinite;
+}
+
+@keyframes turnPulse{
+0%{box-shadow:0 0 0 0 rgba(255,100,0,0.7)}
+70%{box-shadow:0 0 0 12px rgba(255,100,0,0)}
+100%{box-shadow:0 0 0 0 rgba(255,100,0,0)}
 }
 
 @keyframes pulse{
@@ -164,11 +359,13 @@ margin-top:20px;
 
 <div>
 <h2 id="g1"></h2>
+<div id="g1Marks" class="markers"></div>
 <div id="board0" class="board"></div>
 </div>
 
 <div>
 <h2 id="g2"></h2>
+<div id="g2Marks" class="markers"></div>
 <div id="board1" class="board"></div>
 </div>
 
@@ -178,6 +375,8 @@ margin-top:20px;
 
 
 <div id="questionScreen" class="screen">
+
+<div id="powerBox"></div>
 
 <div id="questionBox"></div>
 
@@ -189,8 +388,6 @@ margin-top:20px;
 
 <br>
 
-<button onclick="checkAnswer()">Responder</button>
-
 <h2 id="feedback"></h2>
 
 <button id="continueBtn" style="display:none" onclick="continueGame()">Continuar</button>
@@ -201,8 +398,14 @@ margin-top:20px;
 
 <div id="finalWinner"></div>
 <div id="finalDetails"></div>
+<div id="confetti"></div>
 
 </div>
+
+<div id="powerOverlay" class="powerOverlay">
+<div id="powerOverlayText"></div>
+</div>
+<div id="markAnimLayer"></div>
 
 <script>
 
@@ -217,15 +420,25 @@ let boards=[
 ["","","","","","","","",""]
 ]
 let results=[null,null]
+let boardCells=[[],[]]
 
 let selectedCell
 let selectedBoard
 let selectedIndex
 let currentQuestion
 let currentHasGap
+let pendingPower=null
+let activePower=null
+let powerMode=null
+let powerGroupIndex=-1
+let powerTurnOffset=0
 
 let timer
 let time=45
+let continueTimer
+let waitingContinue=false
+let cheatBuffer=""
+let powerOverlayTimer
 
 function parseCSV(text){
 
@@ -273,6 +486,404 @@ let end=start+match[0].length
 return {hasGap:true,before:q.slice(0,start),after:q.slice(end)}
 }
 
+function getDisplaySymbol(boardIndex,mark){
+if(boardIndex==1){
+return mark=="X"?"□":"+"
+}
+
+return mark
+}
+
+function getTeamSymbol(teamIndex){
+if(teamIndex==0) return "X"
+if(teamIndex==1) return "O"
+if(teamIndex==2) return "□"
+return "+"
+}
+
+function setCellMark(boardIndex,cellIndex,mark){
+boards[boardIndex][cellIndex]=mark
+let cell=boardCells[boardIndex][cellIndex]
+cell.innerText=mark==""?"":getDisplaySymbol(boardIndex,mark)
+cell.classList.remove("ghostHidden")
+cell.classList.remove("nukeFade")
+}
+
+function isPowerTurn(){
+let group=Math.floor(turn/3)
+
+if(group!==powerGroupIndex){
+powerGroupIndex=group
+powerTurnOffset=Math.floor(Math.random()*3)
+}
+
+return (turn%3)===powerTurnOffset
+}
+
+function weightedRandom(options){
+let total=options.reduce((s,o)=>s+o.weight,0)
+let r=Math.random()*total
+
+for(let o of options){
+if(r<o.weight) return o
+r-=o.weight
+}
+
+return options[options.length-1]
+}
+
+function countMarks(boardIndex){
+return boards[boardIndex].filter(c=>c!="").length
+}
+
+function countMarksOf(boardIndex,mark){
+return boards[boardIndex].filter(c=>c==mark).length
+}
+
+function countEmpty(boardIndex){
+return boards[boardIndex].filter(c=>c=="").length
+}
+
+function getAvailableType1Powers(){
+let list=[]
+let mark=turn%2==0?"X":"O"
+let opponent=mark=="X"?"O":"X"
+let otherBoard=selectedBoard==0?1:0
+
+if(countMarksOf(selectedBoard,opponent)>0){
+list.push({
+id:"eraseOpponent",
+desc:"Escolher uma marcação do outro time para ser apagada",
+requiresSelection:true
+})
+list.push({
+id:"convertOpponent",
+desc:"Escolher uma marcação do outro time para ser trocada e virar uma marcação sua",
+requiresSelection:true
+})
+}
+
+if(!results[otherBoard] && countMarks(otherBoard)>=3){
+list.push({
+id:"eraseTwoOther",
+desc:"Apague duas marcações no outro jogo",
+requiresSelection:false
+})
+}
+
+if(countEmpty(selectedBoard)>=2){
+list.push({
+id:"extraMark",
+desc:"Marque mais um quadrado no seu jogo",
+requiresSelection:true
+})
+}
+
+return list
+}
+
+function pickPower(){
+if(!isPowerTurn()) return null
+
+let type1List=getAvailableType1Powers()
+let typeOptions=[]
+
+if(type1List.length>0) typeOptions.push({type:"type1",weight:1})
+typeOptions.push({type:"type2",weight:1})
+typeOptions.push({type:"type3",weight:0.5})
+
+let chosenType=weightedRandom(typeOptions).type
+
+if(chosenType=="type1"){
+let power=type1List[Math.floor(Math.random()*type1List.length)]
+power.type="type1"
+return power
+}
+
+if(chosenType=="type2"){
+let list=[
+{desc:"Todo mundo do seu time pode te ajudar",weight:2},
+{desc:"Escolha uma pessoa do seu time para te ajudar",weight:3},
+{desc:"Acerte e ganhe uma bala",weight:1},
+{desc:"Acerte e escolha alguém para ganhar uma bala",weight:1}
+]
+
+let chosen=weightedRandom(list)
+return {type:"type2",desc:chosen.desc}
+}
+
+let list3=[
+{id:"nuke",desc:"Bomba nuclear"},
+{id:"bomb",desc:"Bomba"}
+]
+
+let chosen=list3[Math.floor(Math.random()*list3.length)]
+return {type:"type3",id:chosen.id,desc:chosen.desc}
+}
+
+function clearBoard(boardIndex){
+for(let i=0;i<9;i++){
+setCellMark(boardIndex,i,"")
+}
+}
+
+function shuffleArray(arr){
+for(let i=arr.length-1;i>0;i--){
+let j=Math.floor(Math.random()*(i+1))
+let tmp=arr[i]
+arr[i]=arr[j]
+arr[j]=tmp
+}
+}
+
+function showPowerOverlayText(text,type,duration){
+powerOverlayText.innerText=text
+powerOverlay.className="powerOverlay show "+(type=="bomb"?"bomb":"nuke")
+clearTimeout(powerOverlayTimer)
+powerOverlayTimer=setTimeout(()=>{
+powerOverlay.className="powerOverlay"
+},duration)
+}
+
+function animateNuke(boardIndex,done){
+let cells=[]
+
+for(let i=0;i<9;i++){
+if(boards[boardIndex][i]!="") cells.push(boardCells[boardIndex][i])
+}
+
+if(cells.length==0){
+done()
+return
+}
+
+cells.forEach(c=>c.classList.add("nukeFade"))
+
+setTimeout(()=>{
+clearBoard(boardIndex)
+cells.forEach(c=>c.classList.remove("nukeFade"))
+done()
+},900)
+}
+
+function animateBombShuffle(done){
+let marks=[]
+
+for(let b=0;b<2;b++){
+for(let i=0;i<9;i++){
+if(boards[b][i]!="") marks.push({b:b,i:i,mark:boards[b][i]})
+}
+}
+
+if(marks.length==0){
+done()
+return
+}
+
+let positions=[]
+for(let i=0;i<18;i++) positions.push(i)
+shuffleArray(positions)
+
+let targets=positions.slice(0,marks.length)
+
+marks.forEach(m=>{
+boardCells[m.b][m.i].classList.add("ghostHidden")
+})
+
+markAnimLayer.innerHTML=""
+
+let ghosts=[]
+
+marks.forEach((m,idx)=>{
+let fromRect=boardCells[m.b][m.i].getBoundingClientRect()
+let targetPos=targets[idx]
+let tb=targetPos<9?0:1
+let ti=targetPos<9?targetPos:targetPos-9
+let toRect=boardCells[tb][ti].getBoundingClientRect()
+
+let ghost=document.createElement("div")
+ghost.className="markGhost"
+ghost.innerText=getDisplaySymbol(m.b,m.mark)
+ghost.style.fontSize=getComputedStyle(boardCells[m.b][m.i]).fontSize
+ghost.style.left=(fromRect.left+fromRect.width/2)+"px"
+ghost.style.top=(fromRect.top+fromRect.height/2)+"px"
+ghost.dataset.targetLeft=(toRect.left+toRect.width/2)
+ghost.dataset.targetTop=(toRect.top+toRect.height/2)
+markAnimLayer.appendChild(ghost)
+ghosts.push(ghost)
+})
+
+requestAnimationFrame(()=>{
+ghosts.forEach(g=>{
+g.style.left=g.dataset.targetLeft+"px"
+g.style.top=g.dataset.targetTop+"px"
+})
+})
+
+setTimeout(()=>{
+markAnimLayer.innerHTML=""
+
+for(let b=0;b<2;b++){
+for(let i=0;i<9;i++){
+setCellMark(b,i,"")
+boardCells[b][i].classList.remove("ghostHidden")
+}
+}
+
+marks.forEach((m,idx)=>{
+let targetPos=targets[idx]
+let tb=targetPos<9?0:1
+let ti=targetPos<9?targetPos:targetPos-9
+setCellMark(tb,ti,m.mark)
+})
+
+done()
+},950)
+}
+
+function handleType3Power(power){
+pendingPower=null
+activePower=null
+powerBox.innerText=""
+powerBox.style.display="none"
+
+switchScreen("game")
+
+if(power.id=="nuke"){
+showPowerOverlayText("BOMBA NUCLEAR","nuke",1400)
+animateNuke(selectedBoard,()=>{
+turn++
+normalizeTurn()
+updateTurn()
+})
+return
+}
+
+showPowerOverlayText("BOMBA","bomb",1400)
+animateBombShuffle(()=>{
+turn++
+normalizeTurn()
+updateTurn()
+})
+}
+
+function applyImmediatePower(power){
+if(power.id=="eraseTwoOther"){
+let otherBoard=selectedBoard==0?1:0
+let indices=[]
+
+for(let i=0;i<9;i++){
+if(boards[otherBoard][i]!="") indices.push(i)
+}
+
+for(let i=indices.length-1;i>0;i--){
+let j=Math.floor(Math.random()*(i+1))
+let tmp=indices[i]
+indices[i]=indices[j]
+indices[j]=tmp
+}
+
+let remove=indices.slice(0,2)
+remove.forEach(i=>{
+setCellMark(otherBoard,i,"")
+})
+}
+}
+
+function startPowerSelection(power){
+let mark=turn%2==0?"X":"O"
+let opponent=mark=="X"?"O":"X"
+
+powerMode={
+id:power.id,
+board:selectedBoard,
+mark:mark,
+opponent:opponent
+}
+
+setPowerTargets()
+document.getElementById("turn").innerText="Escolha a ação do poder"
+}
+
+function clearPowerTargets(){
+for(let b=0;b<2;b++){
+for(let i=0;i<9;i++){
+boardCells[b][i].classList.remove("powerTarget")
+}
+}
+}
+
+function setPowerTargets(){
+clearPowerTargets()
+
+if(!powerMode) return
+
+if(powerMode.id=="eraseOpponent" || powerMode.id=="convertOpponent"){
+for(let i=0;i<9;i++){
+if(boards[powerMode.board][i]==powerMode.opponent){
+boardCells[powerMode.board][i].classList.add("powerTarget")
+}
+}
+return
+}
+
+if(powerMode.id=="extraMark"){
+for(let i=0;i<9;i++){
+if(boards[powerMode.board][i]==""){
+boardCells[powerMode.board][i].classList.add("powerTarget")
+}
+}
+}
+}
+
+function handlePowerClick(board,index,cell){
+if(!powerMode) return
+
+if(powerMode.id=="eraseOpponent"){
+if(board==powerMode.board && boards[board][index]==powerMode.opponent){
+setCellMark(board,index,"")
+finishPowerSelection()
+}
+return
+}
+
+if(powerMode.id=="convertOpponent"){
+if(board==powerMode.board && boards[board][index]==powerMode.opponent){
+setCellMark(board,index,powerMode.mark)
+finishPowerSelection()
+}
+return
+}
+
+if(powerMode.id=="extraMark"){
+if(board==powerMode.board && boards[board][index]==""){
+setCellMark(board,index,powerMode.mark)
+finishPowerSelection()
+}
+}
+}
+
+function finishPowerSelection(){
+clearPowerTargets()
+powerMode=null
+
+let result=checkWin(selectedBoard)
+
+if(result){
+results[selectedBoard]=result
+updateGameHeader(selectedBoard)
+
+if(results[0] && results[1]){
+showFinalResults()
+return
+}
+}
+
+turn++
+normalizeTurn()
+updateTurn()
+}
+
 function startGame(){
 
 let file=document.getElementById("csv").files[0]
@@ -292,6 +903,8 @@ t4.value
 
 g1.innerText=teams[0]+" vs "+teams[1]
 g2.innerText=teams[2]+" vs "+teams[3]
+g1Marks.innerHTML="<span id='team0'><span class='markSymbol'>"+getTeamSymbol(0)+"</span>"+teams[0]+"</span><span id='team1'><span class='markSymbol'>"+getTeamSymbol(1)+"</span>"+teams[1]+"</span>"
+g2Marks.innerHTML="<span id='team2'><span class='markSymbol alt'>"+getTeamSymbol(2)+"</span>"+teams[2]+"</span><span id='team3'><span class='markSymbol alt'>"+getTeamSymbol(3)+"</span>"+teams[3]+"</span>"
 
 createBoard(0)
 createBoard(1)
@@ -314,10 +927,13 @@ for(let c=0;c<9;c++){
 
 let cell=document.createElement("div")
 cell.className="cell"
+cell.dataset.board=i
+cell.dataset.index=c
 
-cell.onclick=()=>selectCell(i,c,cell)
+cell.onclick=()=>handleCellClick(i,c,cell)
 
 board.appendChild(cell)
+boardCells[i][c]=cell
 
 }
 
@@ -327,9 +943,7 @@ function updateTurn(){
 
 if(results[0] && results[1]) return
 
-if(isGameFinished(getGameIndexForTeam(turn))){
-advanceTurn()
-}
+normalizeTurn()
 
 let team=teams[turn%4]
 
@@ -338,6 +952,18 @@ let game=turn%4<2?1:2
 turnText=team+" (Jogo "+game+")"
 
 document.getElementById("turn").innerText=turnText
+highlightTurn()
+
+}
+
+function handleCellClick(board,index,cell){
+
+if(powerMode){
+handlePowerClick(board,index,cell)
+return
+}
+
+selectCell(board,index,cell)
 
 }
 
@@ -366,16 +992,38 @@ currentQuestion=available[Math.floor(Math.random()*available.length)]
 
 used.push(currentQuestion)
 
+let power=pickPower()
+pendingPower=power && power.type=="type1"?power:null
+activePower=null
+
+if(power && (power.type=="type1" || power.type=="type2")){
+powerBox.innerText="Poder: "+power.desc
+powerBox.style.display="block"
+}else{
+powerBox.innerText=""
+powerBox.style.display="none"
+}
+
+if(power && power.type=="type3"){
+handleType3Power(power)
+return
+}
+
+renderQuestionUI()
+
+}
+
+function renderQuestionUI(){
 let parts=splitQuestion(currentQuestion.q)
 currentHasGap=parts.hasGap
 
 if(currentHasGap){
 questionBox.innerHTML=
-parts.before+"<input id='gapInput' class='gapInput'>"+(parts.after||"")
+parts.before+"<input id='gapInput' class='gapInput inline'>"+(parts.after||"")
 inputArea.innerHTML=""
 }else{
 questionBox.innerHTML=parts.before
-inputArea.innerHTML="<input id='gapInput' class='gapInput'>"
+inputArea.innerHTML="<input id='gapInput' class='gapInput block'>"
 }
 
 feedback.innerHTML=""
@@ -386,7 +1034,6 @@ switchScreen("questionScreen")
 document.getElementById("gapInput").focus()
 
 startTimer()
-
 }
 
 function startTimer(){
@@ -409,6 +1056,7 @@ if(time<=0) checkAnswer()
 function checkAnswer(){
 
 clearInterval(timer)
+clearTimeout(continueTimer)
 
 let input=document.getElementById("gapInput")
 let student=input.value.trim()
@@ -432,6 +1080,7 @@ inputArea.innerHTML="<div class='answerBox'><span class='correct'>"+student+"</s
 feedback.innerHTML="Resposta correta."
 
 correctMove=true
+activePower=pendingPower
 
 }else{
 
@@ -448,22 +1097,31 @@ feedback.innerHTML=
 "<div class='answerBox'>Gabarito: <span class='correct'>"+currentQuestion.aDisplay.join(", ")+"</span></div>"
 
 correctMove=false
+activePower=null
 
 }
 
+continueBtn.style.display="none"
+waitingContinue=true
+cheatBuffer=""
+
+continueTimer=setTimeout(()=>{
 continueBtn.style.display="inline-block"
+waitingContinue=false
+},30000)
 
 }
 
 function continueGame(){
 
+waitingContinue=false
+clearTimeout(continueTimer)
+
 if(correctMove){
 
 let mark=turn%2==0?"X":"O"
 
-selectedCell.innerText=mark
-
-boards[selectedBoard][selectedIndex]=mark
+setCellMark(selectedBoard,selectedIndex,mark)
 
 let result=checkWin(selectedBoard)
 
@@ -479,7 +1137,23 @@ return
 
 }
 
+if(correctMove && activePower){
+if(activePower.requiresSelection){
+switchScreen("game")
+startPowerSelection(activePower)
+activePower=null
+pendingPower=null
+return
+}else{
+applyImmediatePower(activePower)
+}
+}
+
+activePower=null
+pendingPower=null
+
 turn++
+normalizeTurn()
 
 switchScreen("game")
 
@@ -522,13 +1196,25 @@ function isGameFinished(gameIndex){
 return results[gameIndex]!=null
 }
 
-function advanceTurn(){
+function normalizeTurn(){
+if(results[0] && results[1]) return
+
+if(results[0] && !results[1]){
+turn=turn%2==0?2:3
+return
+}
+
+if(results[1] && !results[0]){
+turn=turn%2==0?0:1
+return
+}
+
 let attempts=0
 
-do{
+while(attempts<5 && isGameFinished(getGameIndexForTeam(turn))){
 turn=(turn+1)%4
 attempts++
-}while(attempts<5 && isGameFinished(getGameIndexForTeam(turn)))
+}
 }
 
 function updateGameHeader(gameIndex){
@@ -556,6 +1242,18 @@ let winner=gameIndex==0
 title.innerText=base+" - Vencedor: "+winner
 }
 
+function highlightTurn(){
+let ids=["team0","team1","team2","team3"]
+ids.forEach(id=>{
+let el=document.getElementById(id)
+if(el) el.classList.remove("turnPulse")
+})
+
+let current=document.getElementById("team"+(turn%4))
+if(current) current.classList.add("turnPulse")
+}
+
+
 function formatResult(gameIndex){
 let result=results[gameIndex]
 
@@ -577,25 +1275,64 @@ if(results[1]=="X") winners.push(teams[2])
 if(results[1]=="O") winners.push(teams[3])
 
 let message=""
+let hasWinners=winners.length>0
 
 if(winners.length==2){
-message=winners[0]+" e "+winners[1]+" VENCERAM!"
+message="<span class='winnerName'>"+winners[0]+"</span> e <span class='winnerName'>"+winners[1]+"</span>"
 }else if(winners.length==1){
-message=winners[0]+" VENCEU!"
+message="<span class='winnerName'>"+winners[0]+"</span>"
 }else{
-message="OS DOIS JOGOS EMPATARAM"
+message="EMPATE"
 }
 
-finalWinner.innerText=message
-finalDetails.innerHTML=
-"Jogo 1: "+formatResult(0)+"<br>Jogo 2: "+formatResult(1)
+finalWinner.innerHTML=message
+finalDetails.innerHTML=""
+finalDetails.style.display="none"
+
+renderConfetti(hasWinners)
 
 switchScreen("finalScreen")
 }
 
+function renderConfetti(active){
+if(!active){
+confetti.innerHTML=""
+return
+}
+
+if(confetti.children.length>0) return
+
+let colors=["#FF6400","#00ff88","#4dd0ff","#ffd166","#f94144","#9b5de5"]
+let pieces=60
+let html=""
+
+for(let i=0;i<pieces;i++){
+let c=colors[i%colors.length]
+let x=Math.floor(Math.random()*100)+"%"
+let r=Math.floor(Math.random()*360)+"deg"
+let d=(6+Math.random()*6).toFixed(2)+"s"
+html+="<span style='--c:"+c+";--x:"+x+";--r:"+r+";--d:"+d+"'></span>"
+}
+
+confetti.innerHTML=html
+}
+
 document.addEventListener("keypress",function(e){
 
-if(e.key==="Enter") checkAnswer()
+if(e.key==="Enter"){
+checkAnswer()
+return
+}
+
+if(waitingContinue && e.key>="0" && e.key<="9"){
+cheatBuffer=(cheatBuffer+e.key).slice(-3)
+
+if(cheatBuffer==="123"){
+waitingContinue=false
+clearTimeout(continueTimer)
+continueGame()
+}
+}
 
 })
 
