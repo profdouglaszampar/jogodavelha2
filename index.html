@@ -74,6 +74,66 @@ font-size:clamp(1rem,2.8vw,2.25rem);
 max-width:100%;
 }
 
+.groupSetup{
+margin:20px auto;
+padding:12px;
+border:1px solid rgba(255,255,255,0.2);
+border-radius:12px;
+width:min(100%,720px);
+}
+
+#setup{
+font-size:clamp(14px,1.4vw,20px);
+}
+
+#setup h1{
+font-size:clamp(1.6rem,3.2vw,2.4rem);
+margin-bottom:10px;
+}
+
+#setup h3{
+font-size:clamp(1rem,2vw,1.35rem);
+margin:8px 0;
+}
+
+#setup input{
+font-size:clamp(0.95rem,1.8vw,1.2rem);
+}
+
+#setup button{
+font-size:clamp(0.95rem,1.8vw,1.2rem);
+}
+
+.groupGrid{
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:14px;
+width:min(100%,980px);
+margin:0 auto;
+}
+
+.groupGrid .groupSetup{
+width:100%;
+margin:0;
+}
+
+.studentList{
+display:flex;
+flex-direction:column;
+gap:8px;
+margin-top:10px;
+}
+
+.studentList input{
+width:min(100%,460px);
+margin:0 auto;
+}
+
+.addStudentBtn{
+font-size:clamp(0.9rem,2.2vw,1.2rem);
+padding:8px 12px;
+}
+
 .gameLayout{
 display:grid;
 grid-template-columns:minmax(260px,0.95fr) minmax(300px,1.05fr);
@@ -412,6 +472,10 @@ grid-template-columns:1fr;
 .gameInfo{
 text-align:center;
 }
+
+.groupGrid{
+grid-template-columns:1fr;
+}
 }
 
 @keyframes turnPulse{
@@ -435,14 +499,24 @@ text-align:center;
 
 <h1>Jogo da Velha Quiz</h1>
 
-<p>Enviar arquivo CSV</p>
-<input type="file" id="csv">
+<p>Enviar arquivo .txt</p>
+<input type="file" id="csv" accept=".txt,text/plain">
 
-<h3>Jogo 1</h3>
-<input id="t1" placeholder="Time A">
-<input id="t2" placeholder="Time B">
+<div class="groupGrid">
+<div class="groupSetup">
+<h3>Grupo 1</h3>
+<input id="t1" placeholder="Nome do grupo 1">
+<div id="students0" class="studentList"></div>
+<button class="addStudentBtn" type="button" onclick="addStudentInput(0)">+ Nome</button>
+</div>
 
-<br><br>
+<div class="groupSetup">
+<h3>Grupo 2</h3>
+<input id="t2" placeholder="Nome do grupo 2">
+<div id="students1" class="studentList"></div>
+<button class="addStudentBtn" type="button" onclick="addStudentInput(1)">+ Nome</button>
+</div>
+</div>
 
 <button onclick="startGame()">Começar</button>
 
@@ -508,7 +582,13 @@ let questions=[]
 let used=[]
 
 let teams=[]
+let studentsByTeam=[[],[]]
+let responderState=[
+{order:[],index:0},
+{order:[],index:0}
+]
 let turn=0
+let currentTeamTurn=0
 
 let boards=[
 ["","","","","","","","",""]
@@ -534,42 +614,78 @@ let waitingContinue=false
 let cheatBuffer=""
 let powerOverlayTimer
 let nukeVideoTimer
+let currentQuestionTotalTime=45
+let correctMove=false
+const BASE_QUESTION_TIME=45
 
-function parseCSV(text){
+function parseQuestionFile(text){
+
+questions=[]
+used=[]
 
 let rows=text.split(/\r?\n/)
 let currentWeight=1
+let started=false
 
-rows.forEach((r,rowIndex)=>{
-if(rowIndex===0) return
+rows.forEach((r)=>{
 
 let line=r.trim()
 if(!line) return
 
-let weightMatch=line.match(/^peso\s*[:=-]?\s*(\d+(?:[.,]\d+)?)$/i)
-if(weightMatch){
-let value=parseFloat(weightMatch[1].replace(",","."))
+let anyWeightMatch=line.match(/peso\s*[:=-]?\s*(\d+(?:[.,]\d+)?)/i)
+if(!started){
+if(!anyWeightMatch) return
+started=true
+let firstValue=parseFloat(anyWeightMatch[1].replace(",","."))
+if(!Number.isNaN(firstValue) && firstValue>0){
+currentWeight=firstValue
+}
+}
+
+let weightLineMatch=line.match(/^peso\s*[:=-]?\s*(\d+(?:[.,]\d+)?)$/i)
+if(weightLineMatch){
+let value=parseFloat(weightLineMatch[1].replace(",","."))
 if(!Number.isNaN(value) && value>0){
 currentWeight=value
 }
 return
 }
 
-let parts=r.split(";")
-if(parts.length<2) return
+let workingLine=line
+let extraTime=0
+let extraMatch=workingLine.match(/^\(\+\s*(\d+)\s*s\)\s*/i)
+if(extraMatch){
+extraTime=parseInt(extraMatch[1],10)
+workingLine=workingLine.replace(/^\(\+\s*\d+\s*s\)\s*/i,"").trim()
+}
 
-let questionText=parts[0].trim()
-let answerText=parts[1].trim()
+let inlineWeight=currentWeight
+let inlineWeightMatch=workingLine.match(/\|\|\s*peso\s*(\d+(?:[.,]\d+)?)\s*$/i)
+if(inlineWeightMatch){
+let value=parseFloat(inlineWeightMatch[1].replace(",","."))
+if(!Number.isNaN(value) && value>0){
+inlineWeight=value
+}
+workingLine=workingLine.replace(/\|\|\s*peso\s*\d+(?:[.,]\d+)?\s*$/i,"").trim()
+}
+
+let separatorIndex=workingLine.indexOf(";")
+if(separatorIndex===-1) return
+
+let questionText=workingLine.slice(0,separatorIndex).trim()
+let answerText=workingLine.slice(separatorIndex+1).trim()
 
 if(!questionText || !answerText) return
 
-let rawAnswers=answerText
+let answerList=answerText.split(",").map(a=>a.trim()).filter(a=>a.length>0)
+if(answerList.length===0) return
 
 questions.push({
 q:questionText,
-a:rawAnswers.split(",").map(a=>a.trim().toLowerCase()).filter(a=>a.length>0),
-aDisplay:rawAnswers.split(",").map(a=>a.trim()).filter(a=>a.length>0),
-weight:currentWeight
+a:answerList.map(a=>a.toLowerCase()),
+aDisplay:answerList,
+weight:inlineWeight,
+extraTime:extraTime
 })
 })
 
@@ -590,8 +706,108 @@ return {hasGap:true,before:q.slice(0,start),after:q.slice(end)}
 function formatQuestionMarkup(text){
 return text
 .replace(/&lt;br\s*\/?&gt;/gi,"<br>")
+.replace(/<br\s*\/?>/gi,"<br>")
 .replace(/&lt;b&gt;/gi,"<b>")
 .replace(/&lt;\/b&gt;/gi,"</b>")
+}
+
+function addStudentInput(teamIndex,initialValue){
+let list=document.getElementById("students"+teamIndex)
+if(!list) return
+
+let input=document.createElement("input")
+input.type="text"
+input.placeholder="Nome do estudante"
+input.value=initialValue||""
+input.className="studentInput"
+list.appendChild(input)
+}
+
+function ensureInitialStudentInputs(){
+for(let t=0;t<2;t++){
+let list=document.getElementById("students"+t)
+if(!list) continue
+if(list.querySelectorAll("input").length===0){
+addStudentInput(t,"")
+addStudentInput(t,"")
+}
+}
+}
+
+function setupResponders(){
+responderState=[
+{order:[],index:0},
+{order:[],index:0}
+]
+
+for(let t=0;t<2;t++){
+let count=studentsByTeam[t].length
+let order=[]
+for(let i=0;i<count;i++) order.push(i)
+shuffleArray(order)
+responderState[t]={order:order,index:0}
+}
+}
+
+function getCurrentResponderName(teamIndex){
+let list=studentsByTeam[teamIndex]||[]
+if(list.length===0) return ""
+
+let state=responderState[teamIndex]
+if(!state || state.order.length!==list.length){
+let order=[]
+for(let i=0;i<list.length;i++) order.push(i)
+shuffleArray(order)
+responderState[teamIndex]={order:order,index:0}
+state=responderState[teamIndex]
+}
+
+let studentIndex=state.order[state.index]
+if(studentIndex===undefined) return list[0]
+return list[studentIndex]
+}
+
+function advanceResponder(teamIndex){
+let list=studentsByTeam[teamIndex]||[]
+if(list.length===0) return
+
+let state=responderState[teamIndex]
+if(!state || state.order.length!==list.length){
+let order=[]
+for(let i=0;i<list.length;i++) order.push(i)
+shuffleArray(order)
+responderState[teamIndex]={order:order,index:0}
+state=responderState[teamIndex]
+}
+
+state.index++
+
+if(state.index>=state.order.length){
+let previous=state.order.slice()
+shuffleArray(state.order)
+
+if(state.order.length>1){
+let same=true
+for(let i=0;i<state.order.length;i++){
+if(state.order[i]!==previous[i]){
+same=false
+break
+}
+}
+
+if(same){
+state.order.push(state.order.shift())
+}
+}
+
+state.index=0
+}
+}
+
+function advanceTurn(){
+advanceResponder(currentTeamTurn)
+turn++
+currentTeamTurn=(currentTeamTurn+1)%2
 }
 
 function getDisplaySymbol(boardIndex,mark){
@@ -665,18 +881,18 @@ return boards[boardIndex].filter(c=>c=="").length
 
 function getAvailableType1Powers(){
 let list=[]
-let mark=turn%2==0?"X":"O"
+let mark=currentTeamTurn==0?"X":"O"
 let opponent=mark=="X"?"O":"X"
 
 if(countMarksOf(selectedBoard,opponent)>0){
 list.push({
 id:"eraseOpponent",
-desc:"Escolher uma marcação do outro time para ser apagada",
+desc:"Escolher uma marcaÃ§Ã£o do outro time para ser apagada",
 requiresSelection:true
 })
 list.push({
 id:"convertOpponent",
-desc:"Escolher uma marcação do outro time para ser trocada e virar uma marcação sua",
+desc:"Escolher uma marcaÃ§Ã£o do outro time para ser trocada e virar uma marcaÃ§Ã£o sua",
 requiresSelection:true
 })
 }
@@ -686,14 +902,6 @@ list.push({
 id:"extraMark",
 desc:"Marque mais um quadrado no seu jogo",
 requiresSelection:true
-})
-}
-
-if(countMarks(selectedBoard)>=2){
-list.push({
-id:"eraseTwoRandom",
-desc:"Apague duas marcaÃ§Ãµes aleatÃ³rias do tabuleiro",
-requiresSelection:false
 })
 }
 
@@ -726,7 +934,7 @@ let list=[
 {desc:"Todo mundo do seu time pode te ajudar",weight:2},
 {desc:"Escolha uma pessoa do seu time para te ajudar",weight:3},
 {desc:"Acerte e ganhe uma bala",weight:1},
-{desc:"Acerte e escolha alguém para ganhar uma bala",weight:1}
+{desc:"Acerte e escolha alguÃ©m para ganhar uma bala",weight:1}
 ]
 
 let chosen=weightedRandom(list)
@@ -931,8 +1139,7 @@ switchScreen("game")
 if(power.id=="nuke"){
 playNukeVideo(()=>{
 animateNuke(selectedBoard,()=>{
-turn++
-normalizeTurn()
+advanceTurn()
 updateTurn()
 })
 })
@@ -940,30 +1147,17 @@ return
 }
 
 runBombChaos(15000,()=>{
-turn++
-normalizeTurn()
+advanceTurn()
 updateTurn()
 })
 }
 
 function applyImmediatePower(power){
-if(power.id=="eraseTwoRandom"){
-let indices=[]
-
-for(let i=0;i<9;i++){
-if(boards[selectedBoard][i]!="") indices.push(i)
-}
-
-shuffleArray(indices)
-
-indices.slice(0,2).forEach(i=>{
-setCellMark(selectedBoard,i,"")
-})
-}
+return
 }
 
 function startPowerSelection(power){
-let mark=turn%2==0?"X":"O"
+let mark=currentTeamTurn==0?"X":"O"
 let opponent=mark=="X"?"O":"X"
 
 powerMode={
@@ -974,7 +1168,7 @@ opponent:opponent
 }
 
 setPowerTargets()
-document.getElementById("turn").innerText="Escolha a ação do poder"
+document.getElementById("turn").innerText="Escolha a aÃ§Ã£o do poder"
 }
 
 function clearPowerTargets(){
@@ -1051,25 +1245,58 @@ return
 }
 }
 
-turn++
-normalizeTurn()
+advanceTurn()
 updateTurn()
 }
 
 function startGame(){
 
 let file=document.getElementById("csv").files[0]
+if(!file){
+alert("Selecione um arquivo .txt com as perguntas.")
+return
+}
 
 let reader=new FileReader()
 
 reader.onload=function(e){
 
-parseCSV(e.target.result)
+parseQuestionFile(e.target.result)
+if(questions.length===0){
+alert("Nenhuma pergunta valida encontrada apos a primeira linha com Peso X.")
+return
+}
 
 teams=[
-t1.value,
-t2.value
+t1.value.trim()||"Grupo 1",
+t2.value.trim()||"Grupo 2"
 ]
+
+studentsByTeam=[
+Array.from(document.querySelectorAll("#students0 input")).map(i=>i.value.trim()).filter(v=>v.length>0),
+Array.from(document.querySelectorAll("#students1 input")).map(i=>i.value.trim()).filter(v=>v.length>0)
+]
+
+if(studentsByTeam[0].length===0) studentsByTeam[0]=["Aluno 1"]
+if(studentsByTeam[1].length===0) studentsByTeam[1]=["Aluno 1"]
+
+setupResponders()
+turn=0
+currentTeamTurn=Math.floor(Math.random()*2)
+powerGroupIndex=-1
+powerTurnOffset=0
+powerMode=null
+pendingPower=null
+activePower=null
+clearInterval(timer)
+clearTimeout(continueTimer)
+waitingContinue=false
+results=[null]
+boards=[
+["","","","","","","","",""]
+]
+boardCells=[[]]
+document.getElementById("board0").innerHTML=""
 
 g1.innerText=teams[0]+" vs "+teams[1]
 g1Marks.innerHTML="<span id='team0'><span class='markSymbol'>"+getTeamSymbol(0)+"</span>"+teams[0]+"</span><span id='team1'><span class='markSymbol'>"+getTeamSymbol(1)+"</span>"+teams[1]+"</span>"
@@ -1082,7 +1309,7 @@ switchScreen("game")
 
 }
 
-reader.readAsText(file)
+reader.readAsText(file,"UTF-8")
 
 }
 
@@ -1110,10 +1337,13 @@ function updateTurn(){
 
 if(results[0]) return
 
-normalizeTurn()
-
-let team=teams[turn%2]
+let team=teams[currentTeamTurn]
+let responder=getCurrentResponderName(currentTeamTurn)
 let turnText=team
+
+if(responder){
+turnText=team+" - Responde: "+responder
+}
 
 document.getElementById("turn").innerText=turnText
 highlightTurn()
@@ -1206,14 +1436,16 @@ startTimer()
 
 function startTimer(){
 
-time=45
+time=BASE_QUESTION_TIME+(currentQuestion.extraTime||0)
+if(time<1) time=1
+currentQuestionTotalTime=time
 bar.style.width="100%"
 
 timer=setInterval(()=>{
 
 time--
 
-bar.style.width=(time/45*100)+"%"
+bar.style.width=(time/currentQuestionTotalTime*100)+"%"
 
 if(time<=0) checkAnswer()
 
@@ -1287,7 +1519,7 @@ clearTimeout(continueTimer)
 
 if(correctMove){
 
-let mark=turn%2==0?"X":"O"
+let mark=currentTeamTurn==0?"X":"O"
 
 setCellMark(selectedBoard,selectedIndex,mark)
 
@@ -1320,8 +1552,7 @@ applyImmediatePower(activePower)
 activePower=null
 pendingPower=null
 
-turn++
-normalizeTurn()
+advanceTurn()
 
 switchScreen("game")
 
@@ -1356,9 +1587,6 @@ if(board.every(c=>c!="")) return "draw"
 return null
 
 }
-function normalizeTurn(){
-turn=turn%2
-}
 
 function updateGameHeader(gameIndex){
 let title=g1
@@ -1388,7 +1616,7 @@ let el=document.getElementById(id)
 if(el) el.classList.remove("turnPulse")
 })
 
-let current=document.getElementById("team"+(turn%2))
+let current=document.getElementById("team"+currentTeamTurn)
 if(current) current.classList.add("turnPulse")
 }
 
@@ -1443,7 +1671,9 @@ confetti.innerHTML=html
 document.addEventListener("keypress",function(e){
 
 if(e.key==="Enter"){
+if(document.getElementById("questionScreen").classList.contains("active") && document.getElementById("gapInput")){
 checkAnswer()
+}
 return
 }
 
@@ -1468,10 +1698,27 @@ document.getElementById(id).classList.add("active")
 
 }
 
+ensureInitialStudentInputs()
+
 </script>
 
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
